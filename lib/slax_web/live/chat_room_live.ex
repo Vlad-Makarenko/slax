@@ -43,10 +43,11 @@ defmodule SlaxWeb.ChatRoomLive do
 
   attr :active, :boolean, default: false
   attr :room, Room, required: true
+
   defp room_link(assigns) do
     ~H"""
     <a
-      href="#"
+      href={~p"/rooms/#{@room}"}
       class={[
         "flex items-center h-8 text-sm pl-8 pr-3",
         (@active && "bg-slate-300") || "hover:bg-slate-300"
@@ -58,9 +59,15 @@ defmodule SlaxWeb.ChatRoomLive do
     """
   end
 
-  def mount(_params, _session, socket) do
+  def mount(params, _session, socket) do
     rooms = Repo.all(Room)
-    room = List.first(rooms)
+
+    room =
+      case Map.fetch(params, "id") do
+        {:ok, id} -> Repo.get!(Room, id)
+        {:error} -> List.first(rooms)
+      end
+
     {:ok, assign(socket, hide_topic?: false, room: room, rooms: rooms)}
   end
 
