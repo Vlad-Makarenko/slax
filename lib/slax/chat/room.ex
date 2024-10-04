@@ -2,7 +2,7 @@ defmodule Slax.Chat.Room do
   use Ecto.Schema
   import Ecto.Changeset
 
-  alias Expo.Message
+  alias Slax.Chat.Message
 
   schema "rooms" do
     field :name, :string
