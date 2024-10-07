@@ -1,11 +1,13 @@
 defmodule SlaxWeb.ChatRoomLive do
+  use SlaxWeb, :live_view
+
   alias SlaxWeb.OnlineUsers
   alias Slax.Accounts
   alias Slax.Accounts.User
-  use SlaxWeb, :live_view
-
   alias Slax.Chat
   alias Slax.Chat.{Room, Message}
+
+  import SlaxWeb.RoomComponents
 
   @spec render(any()) :: Phoenix.LiveView.Rendered.t()
   def render(assigns) do
@@ -214,18 +216,7 @@ defmodule SlaxWeb.ChatRoomLive do
       <.header class="">
         New chat room
       </.header>
-      <.simple_form
-        for={@new_room_form}
-        id="room-form"
-        phx-change="validate-room"
-        phx-submit="save-room"
-      >
-        <.input field={@new_room_form[:name]} type="text" label="Name" phx-debounce />
-        <.input field={@new_room_form[:topic]} type="text" label="Topic" phx-debounce />
-        <:actions>
-          <.button phx-disable-with="Saving..." class="w-full">Save</.button>
-        </:actions>
-      </.simple_form>
+      <.room_form form={@new_room_form} />
     </.modal>
     """
   end
