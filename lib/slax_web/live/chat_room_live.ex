@@ -62,6 +62,7 @@ defmodule SlaxWeb.ChatRoomLive do
             #<%= @room.name %>
 
             <.link
+              :if={@joined?}
               class="font-normal text-xs text-blue-600 hover:text-blue-700"
               navigate={~p"/rooms/#{@room}/edit"}
             >
@@ -132,7 +133,7 @@ defmodule SlaxWeb.ChatRoomLive do
           timezone={@timezone}
         />
       </div>
-      <div class="h-12 bg-white px-4 pb-4">
+      <div :if={@joined?} class="h-12 bg-white px-4 pb-4">
         <.form
           id="new-message-form"
           for={@new_message_form}
@@ -154,6 +155,34 @@ defmodule SlaxWeb.ChatRoomLive do
             <.icon name="hero-paper-airplane" class="h-4 w-4" />
           </button>
         </.form>
+      </div>
+      <div
+        :if={!@joined?}
+        class="flex justify-around mx-5 mb-5 p-6 bg-slate-100 border-slate-300 border rounded-lg"
+      >
+        <div class="max-w-3-xl text-center">
+          <div class="mb-4">
+            <h1 class="text-xl font-semibold">#<%= @room.name %></h1>
+            <p :if={@room.topic} class="text-sm mt-1 text-gray-600"><%= @room.topic %></p>
+          </div>
+          <div class="flex items-center justify-around">
+            <button
+              phx-click="join-room"
+              class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500"
+            >
+              Join Room
+            </button>
+          </div>
+          <div class="mt-4">
+            <.link
+              navigate={~p"/rooms"}
+              href="#"
+              class="text-sm text-slate-500 underline hover:text-slate-600"
+            >
+              Back to All Rooms
+            </.link>
+          </div>
+        </div>
       </div>
     </div>
     """
@@ -239,7 +268,7 @@ defmodule SlaxWeb.ChatRoomLive do
   end
 
   def mount(_params, _session, socket) do
-    rooms = Chat.list_rooms()
+    rooms = Chat.list_joined_rooms(socket.assigns.current_user)
     users = Accounts.list_users()
     timezone = get_connect_params(socket)["timezone"]
 
@@ -274,6 +303,7 @@ defmodule SlaxWeb.ChatRoomLive do
      socket
      |> assign(
        hide_topic?: false,
+       joined?: Chat.joined?(room, socket.assigns.current_user),
        page_title: "#" <> room.name,
        room: room
      )
@@ -299,12 +329,16 @@ defmodule SlaxWeb.ChatRoomLive do
     %{current_user: current_user, room: room} = socket.assigns
 
     socket =
-      case Chat.create_message(room, message_params, current_user) do
-        {:ok, _message} ->
-          assign_message_form(socket, Chat.change_message(%Message{}))
+      if Chat.joined?(room, current_user) do
+        case Chat.create_message(room, message_params, current_user) do
+          {:ok, _message} ->
+            assign_message_form(socket, Chat.change_message(%Message{}))
 
-        {:error, changeset} ->
-          assign_message_form(socket, changeset)
+          {:error, changeset} ->
+            assign_message_form(socket, changeset)
+        end
+      else
+        socket
       end
 
     {:noreply, socket}
@@ -312,6 +346,15 @@ defmodule SlaxWeb.ChatRoomLive do
 
   def handle_event("delete-message", %{"id" => id}, socket) do
     Chat.delete_message_by_id(id, socket.assigns.current_user)
+    {:noreply, socket}
+  end
+
+  def handle_event("join-room", _, socket) do
+    current_user = socket.assigns.current_user
+    room = socket.assigns.room
+    Chat.join_room!(room, current_user)
+    Chat.subscribe_to_room(room)
+    socket = assign(socket, joined?: true, rooms: Chat.list_joined_rooms(current_user))
     {:noreply, socket}
   end
 
