@@ -6,9 +6,10 @@ defmodule Slax.Chat.RoomMembership do
   alias Slax.Chat.Room
 
   schema "room_memberships" do
-
     belongs_to :room, Room
     belongs_to :user, User
+
+    field :last_read_id, :integer
 
     timestamps(type: :utc_datetime)
   end
