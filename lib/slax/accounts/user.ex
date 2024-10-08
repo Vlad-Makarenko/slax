@@ -42,8 +42,9 @@ defmodule Slax.Accounts.User do
   """
   def registration_changeset(user, attrs, opts \\ []) do
     user
-    |> cast(attrs, [:email, :password])
+    |> cast(attrs, [:email, :username, :password])
     |> validate_email(opts)
+    |> validate_username(opts)
     |> validate_password(opts)
   end
 
@@ -53,6 +54,16 @@ defmodule Slax.Accounts.User do
     |> validate_format(:email, ~r/^[^\s]+@[^\s]+$/, message: "must have the @ sign and no spaces")
     |> validate_length(:email, max: 160)
     |> maybe_validate_unique_email(opts)
+  end
+
+  defp validate_username(changeset, opts) do
+    changeset
+    |> validate_required([:username])
+    |> validate_length(:email, max: 20)
+    |> validate_format(:username, ~r/^[A-Za-z0-9-]+$/,
+      message: "can only contain letters, numbers and dashes"
+    )
+    |> maybe_validate_unique_username(opts)
   end
 
   defp validate_password(changeset, opts) do
@@ -86,6 +97,16 @@ defmodule Slax.Accounts.User do
       changeset
       |> unsafe_validate_unique(:email, Slax.Repo)
       |> unique_constraint(:email)
+    else
+      changeset
+    end
+  end
+
+  defp maybe_validate_unique_username(changeset, opts) do
+    if Keyword.get(opts, :validate_username, true) do
+      changeset
+      |> unsafe_validate_unique(:username, Slax.Repo)
+      |> unique_constraint(:username)
     else
       changeset
     end
