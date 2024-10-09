@@ -128,7 +128,7 @@ defmodule Slax.Accounts.User do
     end
   end
 
-  def avatar_changeset(user, attrs, opts \\ []) do
+  def avatar_changeset(user, attrs) do
     user
     |> cast(attrs, [:avatar_path])
   end
