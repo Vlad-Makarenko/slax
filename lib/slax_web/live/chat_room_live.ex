@@ -7,6 +7,8 @@ defmodule SlaxWeb.ChatRoomLive do
   alias Slax.Chat
   alias Slax.Chat.{Room, Message}
 
+  import SlaxWeb.UserComponents
+
   @spec render(any()) :: Phoenix.LiveView.Rendered.t()
   def render(assigns) do
     ~H"""
@@ -98,7 +100,7 @@ defmodule SlaxWeb.ChatRoomLive do
                 phx-click="show-profile"
                 phx-value-user-id={@current_user.id}
               >
-                <img src={~p"/images/one_ring.jpg"} class="h-8 w-8 rounded" />
+                <.user_avatar user={@current_user} class="h-8 w-8 rounded" />
                 <span class="hover:underline"><%= @current_user.username %></span>
               </.link>
             </div>
@@ -254,9 +256,9 @@ defmodule SlaxWeb.ChatRoomLive do
       >
         <.icon name="hero-trash" class="h-4 w-4" />
       </button>
-      <img
+      <.user_avatar
+        user={@message.user}
         class="h-10 w-10 rounded flex-shrink-0"
-        src={user_avatar_path(@message.user)}
         phx-click="show-profile"
         phx-value-user-id={@message.user_id}
       />
@@ -398,14 +400,6 @@ defmodule SlaxWeb.ChatRoomLive do
       end)
     end)
     |> noreply()
-  end
-
-  defp user_avatar_path(user) do
-    if user.avatar_path do
-      ~p"/uploads/#{user.avatar_path}"
-    else
-      ~p"/images/one_ring.jpg"
-    end
   end
 
   defp format_date(%Date{} = date) do
