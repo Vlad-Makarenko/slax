@@ -7,6 +7,7 @@ defmodule Slax.Accounts.User do
   schema "users" do
     field :email, :string
     field :username, :string
+    field :avatar_path, :string
     field :password, :string, virtual: true, redact: true
     field :hashed_password, :string, redact: true
     field :current_password, :string, virtual: true, redact: true
@@ -125,6 +126,11 @@ defmodule Slax.Accounts.User do
       %{changes: %{email: _}} = changeset -> changeset
       %{} = changeset -> add_error(changeset, :email, "did not change")
     end
+  end
+
+  def avatar_changeset(user, attrs, opts \\ []) do
+    user
+    |> cast(attrs, [:avatar_path])
   end
 
   @doc """
