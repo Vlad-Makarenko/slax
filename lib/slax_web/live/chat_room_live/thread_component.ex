@@ -25,7 +25,7 @@ defmodule SlaxWeb.ChatRoomLive.ThreadComponent do
           <.icon name="hero-x-mark" class="w-5 h-5" />
         </button>
       </div>
-      <div class="flex flex-col flex-grow overflow" id="thread-message-with-replies">
+      <div class="flex flex-col flex-grow overflow-auto" id="thread-message-with-replies">
         <div class="border-b border-slate-300">
           <.message
             message={@message}
