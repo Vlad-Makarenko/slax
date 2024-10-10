@@ -132,7 +132,7 @@ defmodule Slax.Chat do
     |> order_by([m], desc: :inserted_at, desc: :id)
     |> Repo.paginate(
       after: opts[:after],
-      limit: 3,
+      limit: 50,
       cursor_fields: [inserted_at: :desc, id: :desc]
     )
   end
