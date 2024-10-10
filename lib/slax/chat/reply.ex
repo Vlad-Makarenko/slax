@@ -16,7 +16,7 @@ defmodule Slax.Chat.Reply do
   @doc false
   def changeset(reply, attrs) do
     reply
-    |> cast(attrs, [:"\\", :body])
-    |> validate_required([:"\\", :body])
+    |> cast(attrs, [:body])
+    |> validate_required([:body])
   end
 end
