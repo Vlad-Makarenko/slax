@@ -66,6 +66,7 @@ defmodule SlaxWeb.ChatRoomLive do
               :for={user <- @users}
               user={user}
               online={OnlineUsers.online?(@online_users, user.id)}
+              typing={OnlineUsers.typing?(@online_users, user.id)}
             />
           </div>
         </div>
@@ -157,7 +158,6 @@ defmodule SlaxWeb.ChatRoomLive do
         >
           <textarea
             class="flex-grow text-sm px-3 border-l border-slate-300 mx-1 resize-none"
-            cols=""
             id="chat-message-textarea"
             name={@new_message_form[:body].name}
             placeholder={"Message ##{@room.name}"}
@@ -279,7 +279,11 @@ defmodule SlaxWeb.ChatRoomLive do
     <.link class="flex items-center h-8 hover:bg-gray-300 text-sm pl-8 pr-3" href="#">
       <div class="flex justify-center w-4">
         <%= if @online do %>
-          <span class="h-2 w-2 bg-green-500 rounded-full"></span>
+          <%= if @typing do %>
+            <span class="h-2 w-2 bg-blue-500 rounded-full animate-bounce"></span>
+          <% else %>
+            <span class="h-2 w-2 bg-green-500 rounded-full"></span>
+          <% end %>
         <% else %>
           <span class="h-2 w-2 border-2 border-gray-500 rounded-full"></span>
         <% end %>
@@ -499,6 +503,8 @@ defmodule SlaxWeb.ChatRoomLive do
   end
 
   def handle_event("validate-message", %{"message" => message_params}, socket) do
+    OnlineUsers.update_typing(socket.assigns.current_user.id, message_params["body"] !== "")
+
     changeset = Chat.change_message(%Message{}, message_params)
     {:noreply, assign_message_form(socket, changeset)}
   end
@@ -510,6 +516,7 @@ defmodule SlaxWeb.ChatRoomLive do
       if Chat.joined?(room, current_user) do
         case Chat.create_message(room, message_params, current_user) do
           {:ok, _message} ->
+            OnlineUsers.update_typing(socket.assigns.current_user.id, false)
             assign_message_form(socket, Chat.change_message(%Message{}))
 
           {:error, changeset} ->
