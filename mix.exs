@@ -78,7 +78,11 @@ defmodule Slax.MixProject do
       "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
-      "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
+      "assets.setup": [
+        "tailwind.install --if-missing",
+        "esbuild.install --if-missing",
+        "cmd cd assets && npm install && cd .."
+      ],
       "assets.build": ["tailwind slax", "esbuild slax"],
       "assets.deploy": [
         "tailwind slax --minify",
