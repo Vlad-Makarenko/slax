@@ -164,6 +164,21 @@ defmodule Slax.Chat do
     end
   end
 
+  def edit_message(message, attrs) do
+    with {:ok, edited_message} <-
+           message
+           |> Message.changeset(attrs)
+           |> Repo.update() do
+      Phoenix.PubSub.broadcast!(
+        @pubsub,
+        topic(edited_message.room_id),
+        {:edited_message, edited_message}
+      )
+
+      {:ok, edited_message}
+    end
+  end
+
   def get_message!(id) do
     Message
     |> where([m], m.id == ^id)

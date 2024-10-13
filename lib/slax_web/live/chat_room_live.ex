@@ -132,12 +132,48 @@ defmodule SlaxWeb.ChatRoomLive do
                 <div class="text-sm">New</div>
               </div>
             <% %Message{} -> %>
-              <.message
-                current_user={@current_user}
-                dom_id={dom_id}
-                message={message}
-                timezone={@timezone}
-              />
+              <%= if @message_to_edit && @message_to_edit.id  == message.id do %>
+                <div :if={@joined?} id={dom_id} class="h-12 bg-white px-4 pb-4">
+                  <.form
+                    id="edit-message-form"
+                    for={@edit_message_form}
+                    phx-change="validate-edit-message"
+                    phx-submit="submit-editing-message"
+                    phx-value-id={message.id}
+                    class="flex items-center border-2 border-slate-300 rounded-sm p-1"
+                  >
+                    <textarea
+                      class="flex-grow text-sm px-3 border-l border-slate-300 mx-1 resize-none"
+                      id="edit-message-textarea"
+                      name={@edit_message_form[:body].name}
+                      phx-hook="ChatMessageTextarea"
+                      phx-debounce
+                      rows="1"
+                    ><%= Phoenix.HTML.Form.normalize_value("textarea", message.body) %></textarea>
+                    <button
+                      type="submit"
+                      class="flex-shrink flex items-center justify-center h-6 w-6 rounded hover:bg-green-200"
+                    >
+                      <.icon name="hero-check" class="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      phx-click="cancel-edit"
+                      phx-value-id={message.id}
+                      class="flex-shrink flex items-center justify-center h-6 w-6 rounded hover:bg-red-200"
+                    >
+                      <.icon name="hero-x-mark" class="h-4 w-4" />
+                    </button>
+                  </.form>
+                </div>
+              <% else %>
+                <.message
+                  current_user={@current_user}
+                  dom_id={dom_id}
+                  message={message}
+                  timezone={@timezone}
+                />
+              <% end %>
             <% %Date{} -> %>
               <div id={dom_id} class="flex flex-col items-center mt-2">
                 <hr class="w-full" />
@@ -148,7 +184,7 @@ defmodule SlaxWeb.ChatRoomLive do
           <% end %>
         <% end %>
       </div>
-      <div :if={@joined?} class="h-12 bg-white px-4 pb-4">
+      <div :if={@joined? && !@message_to_edit} class="h-12 bg-white px-4 pb-4">
         <.form
           id="new-message-form"
           for={@new_message_form}
@@ -357,6 +393,7 @@ defmodule SlaxWeb.ChatRoomLive do
 
     socket
     |> assign(
+      message_to_edit: nil,
       hide_topic?: false,
       last_read_id: last_read_id,
       joined?: Chat.joined?(room, socket.assigns.current_user),
@@ -366,6 +403,7 @@ defmodule SlaxWeb.ChatRoomLive do
     |> stream(:messages, [], reset: true)
     |> stream_message_page(page)
     |> assign_message_form(Chat.change_message(%Message{}))
+    |> assign_edit_message_form(Chat.change_message(%Message{}))
     |> push_event("reset_pagination", %{can_load_more: !is_nil(page.metadata.after)})
     |> push_event("scroll_messages_to_bottom", %{})
     |> update(:rooms, fn rooms ->
@@ -462,6 +500,10 @@ defmodule SlaxWeb.ChatRoomLive do
     assign(socket, :new_message_form, to_form(changeset))
   end
 
+  def assign_edit_message_form(socket, changeset) do
+    assign(socket, :edit_message_form, to_form(changeset))
+  end
+
   def handle_event("add-reaction", %{"emoji" => emoji, "message-id" => message_id}, socket) do
     message = Chat.get_message!(message_id)
 
@@ -510,6 +552,21 @@ defmodule SlaxWeb.ChatRoomLive do
     {:noreply, assign_message_form(socket, changeset)}
   end
 
+  def handle_event("validate-edit-message", %{"message" => message_params} = check, socket) do
+    changeset = Chat.change_message(%Message{}, message_params)
+    {:noreply, assign_edit_message_form(socket, changeset)}
+  end
+
+  def handle_event("edit-message", %{"id" => message_id, "type" => "Message"}, socket) do
+    message = Chat.get_message!(message_id)
+    socket |> assign(message_to_edit: message) |> stream_insert(:messages, message) |> noreply()
+  end
+
+  def handle_event("cancel-edit", %{"id" => message_id}, socket) do
+    message = Chat.get_message!(message_id)
+    socket |> assign(message_to_edit: nil) |> stream_insert(:messages, message) |> noreply()
+  end
+
   def handle_event("submit-message", %{"message" => message_params}, socket) do
     %{current_user: current_user, room: room} = socket.assigns
 
@@ -522,6 +579,32 @@ defmodule SlaxWeb.ChatRoomLive do
 
           {:error, changeset} ->
             assign_message_form(socket, changeset)
+        end
+      else
+        socket
+      end
+
+    {:noreply, socket}
+  end
+
+  def handle_event(
+        "submit-editing-message",
+        %{"message" => message_params, "id" => message_id},
+        socket
+      ) do
+    "IN SUBMIT" |> IO.inspect()
+    message_params |> IO.inspect()
+    %{current_user: current_user, room: room} = socket.assigns
+    message = Chat.get_message!(message_id)
+
+    socket =
+      if Chat.joined?(room, current_user) do
+        case Chat.edit_message(message, message_params) do
+          {:ok, _message} ->
+            assign_edit_message_form(socket, Chat.change_message(%Message{}))
+
+          {:error, changeset} ->
+            assign_edit_message_form(socket, changeset)
         end
       else
         socket
@@ -595,6 +678,15 @@ defmodule SlaxWeb.ChatRoomLive do
 
   def handle_info({:message_deleted, message}, socket) do
     {:noreply, stream_delete(socket, :messages, message)}
+  end
+
+  def handle_info({:edited_message, message}, socket) do
+    socket
+    |> stream_insert(:messages, message)
+    |> assign(message_to_edit: nil)
+    |> assign_message_form(Chat.change_message(%Message{}))
+    |> assign_edit_message_form(Chat.change_message(%Message{}))
+    |> noreply()
   end
 
   def handle_info(%{event: "presence_diff", payload: diff}, socket) do

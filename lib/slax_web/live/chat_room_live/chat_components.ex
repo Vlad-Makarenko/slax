@@ -19,7 +19,7 @@ defmodule SlaxWeb.ChatComponents do
         :if={!@in_thread? || @current_user.id == @message.user_id}
         class="absolute top-4 right-4 hidden group-hover:block bg-white shadow-sm px-2 pb-1 rounded border border-px border-slate-300 gap-1"
       >
-      <button
+        <button
           :if={!@in_thread?}
           phx-click={
             JS.dispatch(
@@ -39,7 +39,15 @@ defmodule SlaxWeb.ChatComponents do
         >
           <.icon name="hero-chat-bubble-bottom-center-text" class="h-4 w-4" />
         </button>
-
+        <button
+          :if={@current_user.id == @message.user_id}
+          class="text-sky-400 hover:text-sky-600 cursor-pointer"
+          phx-click="edit-message"
+          phx-value-id={@message.id}
+          phx-value-type={@message.__struct__ |> Module.split() |> List.last()}
+        >
+          <.icon name="hero-pencil" class="h-4 w-4" />
+        </button>
         <button
           :if={@current_user.id == @message.user_id}
           class="text-red-500 hover:text-red-800 cursor-pointer"
@@ -68,6 +76,15 @@ defmodule SlaxWeb.ChatComponents do
           </.link>
           <span :if={@timezone} class="ml-1 text-xs text-gray-500">
             <%= message_timestamp(@message, @timezone) %>
+          </span>
+          <span
+            :if={@timezone && DateTime.compare(@message.inserted_at, @message.updated_at) != :eq}
+            class="ml-1 text-xs italic text-gray-400"
+            title={
+    "Edited at: #{Timex.format!(Timex.to_datetime(@message.updated_at, @timezone), "{0D}-{0M}-{YYYY} at {h24}:{m}")}"
+            }
+          >
+            <.icon name="hero-pencil" class="h-3 w-3" />
           </span>
           <p class="text-sm"><%= @message.body %></p>
           <div
