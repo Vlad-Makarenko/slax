@@ -552,7 +552,7 @@ defmodule SlaxWeb.ChatRoomLive do
     {:noreply, assign_message_form(socket, changeset)}
   end
 
-  def handle_event("validate-edit-message", %{"message" => message_params} = check, socket) do
+  def handle_event("validate-edit-message", %{"message" => message_params}, socket) do
     changeset = Chat.change_message(%Message{}, message_params)
     {:noreply, assign_edit_message_form(socket, changeset)}
   end
