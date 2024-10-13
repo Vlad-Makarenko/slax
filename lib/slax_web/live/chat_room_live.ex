@@ -273,6 +273,7 @@ defmodule SlaxWeb.ChatRoomLive do
 
   attr :user, User, required: true
   attr :online, :boolean, default: false
+  attr :typing, :boolean, default: false
 
   defp user(assigns) do
     ~H"""
