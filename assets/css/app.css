@@ -1,5 +1,20 @@
-@import "tailwindcss/base";
-@import "tailwindcss/components";
-@import "tailwindcss/utilities";
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
 
 /* This file is for your main application CSS */
+/* Для браузерів на базі WebKit (Chrome, Safari) */
+::-webkit-scrollbar {
+	width: 6px; /* Ширина скролл-бара */
+	background-color: #f1f1f1; /* Колір фону скролл-бара */
+}
+
+::-webkit-scrollbar-thumb {
+	background-color: #888; /* Колір повзунка */
+	border-radius: 6px; /* Закруглені кути повзунка */
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background-color: #777; /* Колір повзунка при наведенні */
+	cursor: pointer;
+}
