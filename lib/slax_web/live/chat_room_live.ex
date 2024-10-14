@@ -504,7 +504,7 @@ defmodule SlaxWeb.ChatRoomLive do
     assign(socket, :edit_message_form, to_form(changeset))
   end
 
-  def handle_event("add-reaction", %{"emoji" => emoji, "message_id" => message_id}, socket) do
+  def handle_event("add-reaction", %{"emoji" => emoji, "message-id" => message_id}, socket) do
     message = Chat.get_message!(message_id)
 
     Chat.add_reaction(emoji, message, socket.assigns.current_user)

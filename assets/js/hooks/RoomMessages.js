@@ -41,7 +41,7 @@ export default RoomMessages = {
 				onEmojiSelect: selection => {
 					this.pushEvent('add-reaction', {
 						emoji: selection.native,
-						message_id: e.detail.message_id,
+						"message-id": e.detail.message_id,
 					});
 
 					this.closePicker();
