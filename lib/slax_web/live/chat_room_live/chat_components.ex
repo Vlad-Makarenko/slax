@@ -40,7 +40,7 @@ defmodule SlaxWeb.ChatComponents do
           <.icon name="hero-chat-bubble-bottom-center-text" class="h-4 w-4" />
         </button>
         <button
-          :if={@current_user.id == @message.user_id}
+          :if={@current_user.id == @message.user_id && !@in_thread?}
           class="text-sky-400 hover:text-sky-600 cursor-pointer"
           phx-click="edit-message"
           phx-value-id={@message.id}
@@ -78,7 +78,10 @@ defmodule SlaxWeb.ChatComponents do
             <%= message_timestamp(@message, @timezone) %>
           </span>
           <span
-            :if={@timezone && DateTime.compare(@message.inserted_at, @message.updated_at) != :eq}
+            :if={
+              @message.__struct__ |> Module.split() |> List.last() == "Message" && @timezone &&
+                DateTime.compare(@message.inserted_at, @message.updated_at) != :eq
+            }
             class="ml-1 text-xs italic text-gray-400"
             title={
     "Edited at: #{Timex.format!(Timex.to_datetime(@message.updated_at, @timezone), "{0D}-{0M}-{YYYY} at {h24}:{m}")}"
