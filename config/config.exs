@@ -7,6 +7,8 @@
 # General application configuration
 import Config
 
+config :tesla, adapter: Tesla.Adapter.Hackney
+
 config :slax,
   ecto_repos: [Slax.Repo],
   generators: [timestamp_type: :utc_datetime]
