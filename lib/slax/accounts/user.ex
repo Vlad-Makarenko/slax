@@ -2,17 +2,19 @@ defmodule Slax.Accounts.User do
   use Ecto.Schema
   import Ecto.Changeset
 
-  alias Slax.Chat.{Reaction, Room, RoomMembership}
+  alias Slax.Chat.{Reaction, Room, RoomMembership, Transaction}
 
   schema "users" do
     field :email, :string
     field :username, :string
     field :avatar_path, :string
+    field :plan, :string, default: "free"
     field :password, :string, virtual: true, redact: true
     field :hashed_password, :string, redact: true
     field :current_password, :string, virtual: true, redact: true
     field :confirmed_at, :utc_datetime
 
+    has_many :transactions, Transaction
     has_many :reactions, Reaction
     many_to_many :rooms, Room, join_through: RoomMembership
 
@@ -134,6 +136,11 @@ defmodule Slax.Accounts.User do
     |> cast(attrs, [:avatar_path])
   end
 
+  def payment_changeset(user, attrs) do
+    user
+    |> cast(attrs, [:plan])
+  end
+
   @doc """
   A user changeset for changing the password.
 
@@ -177,6 +184,20 @@ defmodule Slax.Accounts.User do
     false
   end
 
+  @spec validate_current_password(
+          {map(),
+           %{
+             optional(atom()) =>
+               atom()
+               | {:array | :assoc | :embed | :in | :map | :parameterized | :supertype | :try,
+                  any()}
+           }}
+          | %{
+              :__struct__ => atom() | %{:__changeset__ => any(), optional(any()) => any()},
+              optional(atom()) => any()
+            },
+          any()
+        ) :: Ecto.Changeset.t()
   @doc """
   Validates the current password otherwise adds an error to the changeset.
   """
