@@ -18,9 +18,11 @@ defmodule SlaxWeb.Router do
   end
 
   # Other scopes may use custom stacks.
-  # scope "/api", SlaxWeb do
-  #   pipe_through :api
-  # end
+  scope "/api", SlaxWeb do
+    pipe_through :api
+
+    post "/payments/callback", PaymentController, :payment_callback
+  end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development
   if Application.compile_env(:slax, :dev_routes) do
@@ -61,6 +63,7 @@ defmodule SlaxWeb.Router do
     live_session :require_authenticated_user,
       on_mount: [{SlaxWeb.UserAuth, :ensure_authenticated}] do
       live "/", ChatRoomLive
+      live "/payments/:result", ChatRoomLive, :payment_result
       live "/rooms", ChatRoomLive.Index
       live "/rooms/:id", ChatRoomLive
       live "/rooms/:id/new", ChatRoomLive, :new
