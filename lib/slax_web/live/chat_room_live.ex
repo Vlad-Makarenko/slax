@@ -3,6 +3,7 @@ defmodule SlaxWeb.ChatRoomLive do
 
   alias SlaxWeb.OnlineUsers
   alias Slax.Accounts
+  alias Slax.PaymentService
   alias Slax.Accounts.User
   alias Slax.Chat
   alias Slax.Chat.{Room, Message}
@@ -124,6 +125,12 @@ defmodule SlaxWeb.ChatRoomLive do
         phx-update="stream"
         phx-hook="RoomMessages"
       >
+        <div
+          phx-click={show_modal("payment-modal")}
+          class="bg-slate-300 cursor-pointer flex justify-center flex-grow-0"
+        >
+          JUST FOR TEST
+        </div>
         <%= for {dom_id, message} <- @streams.messages do %>
           <%= case message  do %>
             <% :unread_marker -> %>
@@ -269,6 +276,28 @@ defmodule SlaxWeb.ChatRoomLive do
         current_user={@current_user}
       />
     </.modal>
+    <.modal
+      id="payment-result-modal"
+      show={@live_action == :payment_result && @payment_result}
+      on_cancel={JS.navigate(~p"/")}
+    >
+      <.live_component
+        module={SlaxWeb.ChatRoomLive.PaymentResultComponent}
+        id="payment-result-component"
+        current_user={@current_user}
+        payment_result={@payment_result}
+      />
+    </.modal>
+    <.modal id="payment-modal" on_cancel={JS.navigate(~p"/rooms/#{@room}")}>
+      <.header class="text-center">
+        Upgrade tariff plan
+      </.header>
+      <.live_component
+        module={SlaxWeb.ChatRoomLive.PaymentFormComponent}
+        id="payment-form-component"
+        current_user={@current_user}
+      />
+    </.modal>
     <div id="emoji-picker-wrapper" class="absolute" phx-update="ignore"></div>
     """
   end
@@ -350,7 +379,19 @@ defmodule SlaxWeb.ChatRoomLive do
     """
   end
 
-  def mount(_params, _session, socket) do
+  def mount(params, _session, socket) do
+    payment_result =
+      case Map.fetch(params, "result") do
+        {:ok, "success"} ->
+          %{"merchant_reference" => Map.get(params, "merchant_reference"), "type" => "success"}
+
+        {:ok, "error"} ->
+          %{"merchant_reference" => Map.get(params, "merchant_reference"), "type" => "error"}
+
+        :error ->
+          nil
+      end
+
     rooms = Chat.list_joined_rooms_with_unread_counts(socket.assigns.current_user)
     users = Accounts.list_users()
     timezone = get_connect_params(socket)["timezone"]
@@ -363,9 +404,12 @@ defmodule SlaxWeb.ChatRoomLive do
 
     Accounts.subscribe_to_user_avatars()
 
+    PaymentService.subscribe_to_tariff_upgrade(socket.assigns.current_user)
+
     Enum.each(rooms, fn {chat, _} -> Chat.subscribe_to_room(chat) end)
 
     socket
+    |> assign(payment_result: payment_result)
     |> assign(rooms: rooms, users: users, timezone: timezone)
     |> assign(online_users: OnlineUsers.list())
     |> stream_configure(:messages,
@@ -693,6 +737,15 @@ defmodule SlaxWeb.ChatRoomLive do
     online_users = OnlineUsers.update(socket.assigns.online_users, diff)
 
     {:noreply, assign(socket, online_users: online_users)}
+  end
+
+  def handle_info(%{plan_upgraded: new_current_user}, socket) do
+    IO.inspect("\n\n\nWE ARE HERE\n\n\n\n")
+
+    socket
+    |> put_flash(:info, "Tariff upgraded!")
+    |> assign(current_user: new_current_user)
+    |> noreply()
   end
 
   def handle_info({:deleted_reply, message}, socket) do
