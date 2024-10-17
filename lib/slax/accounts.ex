@@ -35,6 +35,22 @@ defmodule Slax.Accounts do
   end
 
   @doc """
+  Gets a user by username.
+
+  ## Examples
+
+      iex> get_user_by_username("username")
+      %User{}
+
+      iex> get_user_by_username("unknown")
+      nil
+
+  """
+  def get_user_by_username(username) when is_binary(username) do
+    Repo.get_by(User, username: username)
+  end
+
+  @doc """
   Gets a user by email and password.
 
   ## Examples
@@ -376,6 +392,12 @@ defmodule Slax.Accounts do
 
       {:ok, user}
     end
+  end
+
+  def update_user_tariff_plan(user, tariff) do
+    user
+    |> User.payment_changeset(%{plan: tariff})
+    |> Repo.update()
   end
 
   def subscribe_to_user_avatars do
