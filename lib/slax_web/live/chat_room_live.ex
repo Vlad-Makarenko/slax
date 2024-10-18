@@ -10,6 +10,10 @@ defmodule SlaxWeb.ChatRoomLive do
 
   import SlaxWeb.ChatComponents
   import SlaxWeb.UserComponents
+  import SlaxWeb.PaymentComponents
+
+  @free_limit 10
+  @basic_limit 50
 
   @spec render(any()) :: Phoenix.LiveView.Rendered.t()
   def render(assigns) do
@@ -125,14 +129,10 @@ defmodule SlaxWeb.ChatRoomLive do
         phx-update="stream"
         phx-hook="RoomMessages"
       >
-        <div
-          phx-click={show_modal("payment-modal")}
-          class="bg-slate-300 cursor-pointer flex justify-center flex-grow-0"
-        >
-          JUST FOR TEST
-        </div>
         <%= for {dom_id, message} <- @streams.messages do %>
           <%= case message  do %>
+            <% :upgrade_banner -> %>
+              <.upgraded_plan_banner dom_id={dom_id} />
             <% :unread_marker -> %>
               <div id={dom_id} class="w-full flex text-red-500 items-center gap-3 pr-5">
                 <div class="w-full h-px grow bg-red-500"></div>
@@ -417,6 +417,7 @@ defmodule SlaxWeb.ChatRoomLive do
       dom_id: fn
         %Message{id: id} -> "messages-#{id}"
         :unread_marker -> "messages-unread-marker"
+        :upgrade_banner -> "messages-upgrade-banner"
         %Date{} = date -> to_string(date)
       end
     )
@@ -430,7 +431,7 @@ defmodule SlaxWeb.ChatRoomLive do
         :error -> Chat.get_first_room!()
       end
 
-    page = Chat.list_messages_in_room(room)
+    page = Chat.list_messages_in_room(room, socket.assigns.current_user)
 
     last_read_id = Chat.get_last_read_id(room, socket.assigns.current_user)
 
@@ -439,6 +440,7 @@ defmodule SlaxWeb.ChatRoomLive do
     socket
     |> assign(
       message_to_edit: nil,
+      loaded_messages_count: 0,
       hide_topic?: false,
       last_read_id: last_read_id,
       joined?: Chat.joined?(room, socket.assigns.current_user),
@@ -464,17 +466,20 @@ defmodule SlaxWeb.ChatRoomLive do
 
   defp stream_message_page(socket, %Paginator.Page{} = page) do
     last_read_id = socket.assigns.last_read_id
+    loaded_messages_count = socket.assigns.loaded_messages_count + length(page.entries)
 
     messages =
       page.entries
       |> Enum.reverse()
       |> insert_date_dividers(socket.assigns.timezone)
+      |> maybe_insert_upgrade_banner(socket.assigns.current_user)
       |> maybe_insert_unread_marker(last_read_id)
       |> Enum.reverse()
 
     socket
     |> stream(:messages, messages, at: 0)
     |> assign(:message_cursor, page.metadata.after)
+    |> assign(:loaded_messages_count, loaded_messages_count)
   end
 
   defp format_date(%Date{} = date) do
@@ -525,6 +530,12 @@ defmodule SlaxWeb.ChatRoomLive do
     |> Enum.flat_map(fn {date, messages} -> [date | messages] end)
   end
 
+  defp maybe_insert_upgrade_banner(messages, %User{plan: "advanced"}), do: messages
+
+  defp maybe_insert_upgrade_banner(messages, _) do
+    [:upgrade_banner | messages]
+  end
+
   defp maybe_insert_unread_marker(messages, nil), do: messages
 
   defp maybe_insert_unread_marker(messages, last_read_id) do
@@ -566,15 +577,21 @@ defmodule SlaxWeb.ChatRoomLive do
   end
 
   def handle_event("load-more-messages", _, socket) do
-    page =
-      Chat.list_messages_in_room(
-        socket.assigns.room,
-        after: socket.assigns.message_cursor
-      )
+    if can_load_more_per_plan?(socket.assigns.current_user, socket.assigns.loaded_messages_count) do
+      page =
+        Chat.list_messages_in_room(
+          socket.assigns.room,
+          socket.assigns.current_user,
+          after: socket.assigns.message_cursor
+        )
 
-    socket
-    |> stream_message_page(page)
-    |> reply(%{can_load_more: !is_nil(page.metadata.after)})
+      socket
+      |> stream_message_page(page)
+      |> reply(%{can_load_more: !is_nil(page.metadata.after)})
+    else
+      socket
+      |> reply(%{can_load_more: false})
+    end
   end
 
   def handle_event("show-profile", %{"user-id" => user_id}, socket) do
@@ -741,8 +758,6 @@ defmodule SlaxWeb.ChatRoomLive do
   end
 
   def handle_info(%{plan_upgraded: new_current_user}, socket) do
-    IO.inspect("\n\n\nWE ARE HERE\n\n\n\n")
-
     socket
     |> put_flash(:info, "Tariff upgraded!")
     |> assign(current_user: new_current_user)
@@ -800,6 +815,14 @@ defmodule SlaxWeb.ChatRoomLive do
       end
     else
       socket
+    end
+  end
+
+  defp can_load_more_per_plan?(%User{plan: plan}, current_msg_count) do
+    case plan do
+      "free" -> @free_limit - current_msg_count > 0
+      "basic" -> @basic_limit - current_msg_count > 0
+      "advanced" -> true
     end
   end
 

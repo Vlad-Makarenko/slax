@@ -8,6 +8,8 @@ defmodule Slax.Chat do
   @pubsub Slax.PubSub
 
   @room_page_size 10
+  @message_free_limit 10
+  @message_default_limit 50
 
   def subscribe_to_room(room) do
     Phoenix.PubSub.subscribe(@pubsub, topic(room.id))
@@ -125,7 +127,9 @@ defmodule Slax.Chat do
     |> Repo.update()
   end
 
-  def list_messages_in_room(%Room{id: room_id}, opts \\ []) do
+  def list_messages_in_room(%Room{id: room_id}, %User{plan: plan}, opts \\ []) do
+    limit = if plan == "free", do: @message_free_limit, else: @message_default_limit
+
     Message
     |> where([m], m.room_id == ^room_id)
     |> preload_message_user_and_replies()
@@ -133,7 +137,7 @@ defmodule Slax.Chat do
     |> preload_reactions()
     |> Repo.paginate(
       after: opts[:after],
-      limit: 50,
+      limit: limit,
       cursor_fields: [inserted_at: :desc, id: :desc]
     )
   end

@@ -28,6 +28,25 @@ defmodule SlaxWeb.PaymentComponents do
     """
   end
 
+  attr :dom_id, :string, required: true
+
+  def upgraded_plan_banner(assigns) do
+    ~H"""
+    <div
+      id={@dom_id}
+      class="bg-slate-100 cursor-pointer flex items-center justify-between px-4 py-2 text-sm"
+    >
+      <span>Want to see more messages in the room? Upgrade your tariff plan!</span>
+      <button
+        phx-click={show_modal("payment-modal")}
+        class="py-2 px-4 border rounded-lg border-slate-200 hover:bg-slate-200 font-semibold"
+      >
+        Upgrade tariff
+      </button>
+    </div>
+    """
+  end
+
   defp transaction_timestamp(transaction, timezone) do
     transaction.inserted_at
     |> Timex.Timezone.convert(timezone)
