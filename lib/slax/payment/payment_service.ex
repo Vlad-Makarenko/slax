@@ -1,7 +1,7 @@
-defmodule Slax.PaymentService do
+defmodule Slax.Payment.PaymentService do
   alias Slax.Repo
-  alias Slax.Chat.Transaction
-  alias Slax.PaymentApi.AcoinApiClient
+  alias Slax.Payment.Transaction
+  alias Slax.Payment.AcoinApiClient
   alias Slax.Accounts.User
 
   @pubsub Slax.PubSub

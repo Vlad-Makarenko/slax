@@ -3,7 +3,7 @@ defmodule SlaxWeb.ChatRoomLive do
 
   alias SlaxWeb.OnlineUsers
   alias Slax.Accounts
-  alias Slax.PaymentService
+  alias Slax.Payment.PaymentService
   alias Slax.Accounts.User
   alias Slax.Chat
   alias Slax.Chat.{Room, Message}

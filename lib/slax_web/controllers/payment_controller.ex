@@ -2,7 +2,7 @@ defmodule SlaxWeb.PaymentController do
   use SlaxWeb, :controller
 
   alias Slax.Accounts
-  alias Slax.PaymentService
+  alias Slax.Payment.PaymentService
 
   @pubsub Slax.PubSub
 

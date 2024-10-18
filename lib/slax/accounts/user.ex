@@ -2,7 +2,8 @@ defmodule Slax.Accounts.User do
   use Ecto.Schema
   import Ecto.Changeset
 
-  alias Slax.Chat.{Reaction, Room, RoomMembership, Transaction}
+  alias Slax.Payment.Transaction
+  alias Slax.Chat.{Reaction, Room, RoomMembership}
 
   schema "users" do
     field :email, :string

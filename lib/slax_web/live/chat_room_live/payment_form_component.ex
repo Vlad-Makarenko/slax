@@ -1,5 +1,5 @@
 defmodule SlaxWeb.ChatRoomLive.PaymentFormComponent do
-  alias Slax.PaymentService
+  alias Slax.Payment.PaymentService
   use SlaxWeb, :live_component
 
   def render(assigns) do

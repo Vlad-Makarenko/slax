@@ -1,4 +1,4 @@
-defmodule Slax.Chat.Transaction do
+defmodule Slax.Payment.Transaction do
   use Ecto.Schema
   import Ecto.Changeset
 

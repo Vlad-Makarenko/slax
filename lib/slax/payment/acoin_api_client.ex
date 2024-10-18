@@ -1,4 +1,4 @@
-defmodule Slax.PaymentApi.AcoinApiClient do
+defmodule Slax.Payment.AcoinApiClient do
   use Tesla
 
   def client() do
