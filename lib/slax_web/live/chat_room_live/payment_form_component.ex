@@ -16,33 +16,22 @@ defmodule SlaxWeb.ChatRoomLive.PaymentFormComponent do
         </span>
 
         <div class="flex flex-col space-y-2">
-          <label class="w-full">
-            <input
-              type="radio"
-              name="option"
-              value="basic"
-              checked={@option == "basic"}
-              phx-change="validate"
-              class="hidden peer"
-            />
-            <span class="block w-full bg-slate-100 text-center py-2 rounded-lg cursor-pointer peer-checked:bg-slate-300">
-              Basic (20 ZAR)
-            </span>
-          </label>
-
-          <label class="w-full">
-            <input
-              type="radio"
-              name="option"
-              value="advanced"
-              checked={@option == "advanced"}
-              phx-change="validate"
-              class="hidden peer"
-            />
-            <span class="block w-full bg-slate-100 text-center py-2 rounded-lg cursor-pointer peer-checked:bg-slate-300">
-              Advanced (100 ZAR)
-            </span>
-          </label>
+          <%= for item <- @plans_list do %>
+            <label class="w-full">
+              <input
+                type="radio"
+                name="option"
+                value={item.level}
+                checked={@option == item.level}
+                disabled={item.disabled}
+                phx-change="validate"
+                class="hidden peer"
+              />
+              <p class="block w-full bg-slate-100 py-2 px-2 rounded-lg cursor-pointer peer-checked:bg-slate-300">
+                R<%= item.price %><span class="font-bold"> <%= String.capitalize(item.level) %></span> - <%= item.info %>
+              </p>
+            </label>
+          <% end %>
         </div>
 
         <label class="w-full">
@@ -69,12 +58,13 @@ defmodule SlaxWeb.ChatRoomLive.PaymentFormComponent do
     """
   end
 
-  # TODO: Ask available options and its price from server (based on current user plan)
-
   def update(assigns, socket) do
+    plans = PaymentService.get_tariff_plans(assigns.current_user)
+
     socket
+    |> assign(:plans_list, plans)
     |> assign(:phone_number, "")
-    |> assign(:option, "basic")
+    |> assign(:option, "advanced")
     |> assign(:message, "")
     |> assign(assigns)
     |> ok()
@@ -91,7 +81,7 @@ defmodule SlaxWeb.ChatRoomLive.PaymentFormComponent do
   end
 
   def handle_event("validate", %{"option" => option}, socket) do
-    case valid_option(option) do
+    case valid_option(option, socket.assigns.plans_list) do
       :ok ->
         {:noreply, assign(socket, message: "", option: option)}
 
@@ -102,7 +92,7 @@ defmodule SlaxWeb.ChatRoomLive.PaymentFormComponent do
 
   def handle_event("submit", %{"phone_number" => phone_number, "option" => option}, socket) do
     with :ok <- validate_phone_number(phone_number),
-         :ok <- valid_option(option),
+         :ok <- valid_option(option, socket.assigns.plans_list),
          {:ok, body} <-
            PaymentService.create_phone_redemption(
              socket.assigns.current_user,
@@ -119,22 +109,24 @@ defmodule SlaxWeb.ChatRoomLive.PaymentFormComponent do
         |> noreply()
 
       {:error, reason} ->
-        reason |> IO.inspect()
         {:noreply, assign(socket, message: reason)}
     end
   end
 
-  defp valid_option(option) do
-    # Простий приклад валідації номера телефону
-    if option in ["basic", "advanced"] do
+  defp valid_option(option, plans_list) do
+    with %{} = plan <- Enum.find(plans_list, fn plan -> plan.level == option end),
+         false <- plan.disabled do
       :ok
     else
-      {:error, "Please choose a valid option."}
+      nil ->
+        {:error, "Invalid plan selected."}
+
+      true ->
+        {:error, "The selected plan is not available for upgrade."}
     end
   end
 
   defp validate_phone_number(phone_number) do
-    # Простий приклад валідації номера телефону
     if String.match?(phone_number, ~r/^\+27\d{9}$/) do
       :ok
     else

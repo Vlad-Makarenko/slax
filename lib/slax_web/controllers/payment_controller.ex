@@ -10,8 +10,7 @@ defmodule SlaxWeb.PaymentController do
         %Plug.Conn{
           body_params: %{
             "merchant_reference" => merchant_reference,
-            "transaction_id" => transaction_id,
-            "amount" => amount
+            "transaction_id" => transaction_id
           }
         } = conn,
         _
@@ -29,13 +28,13 @@ defmodule SlaxWeb.PaymentController do
       case PaymentService.get_phone_transaction_info(transaction_id) do
         {:ok, body} ->
           IO.inspect(body)
-          username = body["merchant_reference"] |> String.split("-") |> List.first()
+          [username | [code | _]] = body["merchant_reference"] |> String.split("-")
           # TODO: Ask or find info if it is ok to do like that or need to pattern match this
           user = Accounts.get_user_by_username(username)
           PaymentService.create_transaction(user, body)
 
           {:ok, updated_user} =
-            Accounts.update_user_tariff_plan(user, PaymentService.tariff_plan(amount))
+            Accounts.update_user_tariff_plan(user, PaymentService.tariff_by_code(code))
 
           Phoenix.PubSub.broadcast!(@pubsub, "payment_status:#{updated_user.id}", %{
             plan_upgraded: updated_user
