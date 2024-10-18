@@ -4,12 +4,6 @@ defmodule Slax.PaymentService do
   alias Slax.PaymentApi.AcoinApiClient
   alias Slax.Accounts.User
 
-  # TODO: maybe hide it to env?
-  @notify_url "https://f4e4-185-76-69-219.ngrok-free.app/api/payments/callback"
-  @success_url "https://f4e4-185-76-69-219.ngrok-free.app/payments/success"
-  @cancel_url "https://f4e4-185-76-69-219.ngrok-free.app"
-  @error_url "https://f4e4-185-76-69-219.ngrok-free.app/payments/error"
-
   @pubsub Slax.PubSub
 
   def get_phone_transaction_info(transaction_id) when is_binary(transaction_id) do
@@ -47,10 +41,10 @@ defmodule Slax.PaymentService do
       phone_number: phone_number,
       amount: tariff_plan(subscribe_level),
       merchant_reference: "#{current_user.username}-#{timestamp}",
-      notify_url: @notify_url,
-      success_url: @success_url,
-      cancel_url: @cancel_url,
-      error_url: @error_url
+      notify_url: Application.get_env(:slax, :secrets)[:notify_url],
+      success_url: Application.get_env(:slax, :secrets)[:success_url],
+      cancel_url: Application.get_env(:slax, :secrets)[:cancel_url],
+      error_url: Application.get_env(:slax, :secrets)[:error_url]
     }
 
     case AcoinApiClient.post_phone_redemption(body) do
