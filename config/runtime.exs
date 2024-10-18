@@ -1,4 +1,14 @@
 import Config
+import Dotenvy
+
+source(["#{config_env()}.env", "#{config_env()}.override.env", ".env", System.get_env()])
+
+config :slax, :secrets,
+  acoin_api_key: env!("ACOIN_API_KEY", :string),
+  notify_url: env!("NOTIFY_URL", :string),
+  success_url: env!("SUCCESS_URL", :string),
+  cancel_url: env!("CANCEL_URL", :string),
+  error_url: env!("ERROR_URL", :string)
 
 # config/runtime.exs is executed for all environments, including
 # during releases. It is executed after compilation and before the
@@ -29,6 +39,8 @@ if config_env() == :prod do
       """
 
   maybe_ipv6 = if System.get_env("ECTO_IPV6") in ~w(true 1), do: [:inet6], else: []
+
+  config :slax, :secrets, acoin_api_key: env!("ACOIN_API_KEY", :string)
 
   config :slax, Slax.Repo,
     # ssl: true,

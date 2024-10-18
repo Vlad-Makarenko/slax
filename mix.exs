@@ -63,7 +63,8 @@ defmodule Slax.MixProject do
       {:timex, "~> 3.7"},
       {:faker, "~> 0.18", only: :dev},
       {:paginator, "~> 1.2.0"},
-      {:tesla, "~> 1.12.1"}
+      {:tesla, "~> 1.12.1"},
+      {:dotenvy, "~> 0.8.0"}
     ]
   end
 
