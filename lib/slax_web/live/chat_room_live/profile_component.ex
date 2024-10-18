@@ -1,9 +1,11 @@
 defmodule SlaxWeb.ChatRoomLive.ProfileComponent do
+  alias Slax.Payment.PaymentService
   use SlaxWeb, :live_component
 
   alias Slax.Accounts
 
   import SlaxWeb.UserComponents
+  import SlaxWeb.PaymentComponents
 
   def render(assigns) do
     ~H"""
@@ -61,9 +63,23 @@ defmodule SlaxWeb.ChatRoomLive.ProfileComponent do
             <.user_avatar user={@user} class="w-48 rounded mx-auto" />
           <% end %>
         </div>
-        <h2 class="text-xl font-bold text-gray-800">
-          <%= @user.username %>
-        </h2>
+        <div class="flex items-center gap-2">
+          <span class="text-xl font-bold text-gray-800">
+            <%= @user.username %>
+          </span>
+          <span>•</span>
+          <span class="text-md italic text-slate-500"><%= @user.plan %></span>
+        </div>
+        <div :if={@current_user.id == @user.id} class="flex flex-col gap-2 mt-2">
+          <span class="text-md font-semibold text-gray-800">
+            Transactions history:
+          </span>
+          <div class="flex flex-col">
+            <%= for item <- @transactions_history do %>
+              <.user_transaction transaction={item} timezone={@timezone} />
+            <% end %>
+          </div>
+        </div>
       </div>
     </div>
     """
@@ -77,6 +93,11 @@ defmodule SlaxWeb.ChatRoomLive.ProfileComponent do
       max_file_size: 2 * 1024 * 1024
     )
     |> ok()
+  end
+
+  def update(assigns, socket) do
+    transactions_history = PaymentService.get_all_transactions_by_user(assigns.current_user)
+    socket |> assign(assigns) |> assign(transactions_history: transactions_history) |> ok()
   end
 
   def handle_event("validate-avatar", _, socket), do: {:noreply, socket}

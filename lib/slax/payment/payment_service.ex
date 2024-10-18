@@ -4,6 +4,8 @@ defmodule Slax.Payment.PaymentService do
   alias Slax.Payment.AcoinApiClient
   alias Slax.Accounts.User
 
+  import Ecto.Query
+
   @pubsub Slax.PubSub
 
   # Maybe hide it somewhere?
@@ -145,7 +147,15 @@ defmodule Slax.Payment.PaymentService do
     Repo.get_by(Transaction, merchant_reference: merchant_reference)
   end
 
-  def subscribe_to_tariff_upgrade(user) do
+  def get_all_transactions_by_user(%User{} = user) do
+    from(transaction in Transaction,
+      where: transaction.user_id == ^user.id,
+      order_by: [asc: transaction.inserted_at]
+    )
+    |> Repo.all()
+  end
+
+  def subscribe_to_tariff_upgrade(%User{} = user) do
     Phoenix.PubSub.subscribe(@pubsub, "payment_status:#{user.id}")
   end
 end

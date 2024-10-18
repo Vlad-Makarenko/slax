@@ -248,6 +248,7 @@ defmodule SlaxWeb.ChatRoomLive do
         module={SlaxWeb.ChatRoomLive.ProfileComponent}
         user={@profile}
         current_user={@current_user}
+        timezone={@timezone}
       />
     <% end %>
 
