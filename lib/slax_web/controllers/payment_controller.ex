@@ -6,6 +6,30 @@ defmodule SlaxWeb.PaymentController do
 
   @pubsub Slax.PubSub
 
+  def is_valid_hash?(body) do
+    transaction_id = body["transaction_id"] || ""
+    amount = body["amount"] || ""
+    currency = body["currency"] || ""
+    merchant_reference = body["merchant_reference"] || ""
+    status = body["status"] || ""
+    error_code = body["error_code"] || ""
+    received_hash = body["hash"] || ""
+
+    api_key = Application.get_env(:slax, :secrets)[:acoin_api_key]
+
+    concatenated_string =
+      "#{transaction_id}#{amount}#{currency}#{merchant_reference}#{status}#{error_code}" <>
+        api_key
+
+    lowercase_string = String.downcase(concatenated_string)
+
+    generated_hash =
+      :crypto.hash(:sha512, lowercase_string)
+      |> Base.encode16(case: :lower)
+
+    generated_hash == received_hash
+  end
+
   def payment_callback(
         %Plug.Conn{
           body_params: %{
@@ -13,11 +37,12 @@ defmodule SlaxWeb.PaymentController do
             "transaction_id" => transaction_id
           }
         } = conn,
-        _
+        body
       ) do
     # TODO: verify hash somehow
 
-    if PaymentService.get_transaction_by_merchant_reference(merchant_reference) do
+    if !is_valid_hash?(body) ||
+         PaymentService.get_transaction_by_merchant_reference(merchant_reference) do
       conn
       |> put_status(:bad_request)
       |> json(%{message: "Something went wrong"})
