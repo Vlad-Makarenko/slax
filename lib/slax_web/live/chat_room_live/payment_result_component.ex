@@ -31,7 +31,7 @@ defmodule SlaxWeb.ChatRoomLive.PaymentResultComponent do
           </button>
         </div>
       <% else %>
-        <div class="flex flex-col gap-3 justify-center w-full">
+        <div class="flex flex-col gap-3 justify-center items-center w-full">
           <.icon name="hero-x-circle" class="h-24 w-24 text-red-500" />
           <h1 class="text-lg font-bold text-gray-800">Payment failed!</h1>
           <span class="text-lg text-gray-800">
@@ -57,7 +57,7 @@ defmodule SlaxWeb.ChatRoomLive.PaymentResultComponent do
           success = type == "success"
           socket |> assign(assigns) |> assign(success: success) |> ok()
         else
-          socket |> push_patch(to: ~p"/") |> ok()
+          socket |> assign(assigns) |> assign(success: false) |> ok()
         end
 
       nil ->
